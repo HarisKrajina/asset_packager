@@ -138,7 +138,8 @@ module Synthesis
       if @asset_type == "javascripts"
         (@sources - %w(prototype effects dragdrop controls)).each do |s|
           puts "==================== #{s}.#{@extension} ========================"
-          system("java -jar #{yui_path}/yuicompressor-2.4.2.jar --type js -v #{full_asset_path(s)} >/dev/null")
+          # Windows OS/ UNIX compatabile
+          system("java -jar #{yui_path}/yuicompressor-2.4.2.jar --type js -v #{full_asset_path(s)}")
         end
       end
     end
