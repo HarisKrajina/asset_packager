@@ -3,7 +3,7 @@ module Synthesis
 
     # class variables
     @@asset_packages_yml = $asset_packages_yml || 
-      (File.exists?("#{RAILS_ROOT}/config/asset_packages.yml") ? YAML.load_file("#{RAILS_ROOT}/config/asset_packages.yml") : nil)
+      (File.exists?("#{Rails.root.to_s}/config/asset_packages.yml") ? YAML.load_file("#{Rails.root.to_s}/config/asset_packages.yml") : nil)
   
     # singleton methods
     class << self
@@ -78,13 +78,13 @@ module Synthesis
       end
 
       def create_yml
-        unless File.exists?("#{RAILS_ROOT}/config/asset_packages.yml")
+        unless File.exists?("#{Rails.root.to_s}/config/asset_packages.yml")
           asset_yml = Hash.new
 
-          asset_yml['javascripts'] = [{"base" => build_file_list("#{RAILS_ROOT}/public/javascripts", "js")}]
-          asset_yml['stylesheets'] = [{"base" => build_file_list("#{RAILS_ROOT}/public/stylesheets", "css")}]
+          asset_yml['javascripts'] = [{"base" => build_file_list("#{Rails.root.to_s}/public/javascripts", "js")}]
+          asset_yml['stylesheets'] = [{"base" => build_file_list("#{Rails.root.to_s}/public/stylesheets", "css")}]
 
-          File.open("#{RAILS_ROOT}/config/asset_packages.yml", "w") do |out|
+          File.open("#{Rails.root.to_s}/config/asset_packages.yml", "w") do |out|
             YAML.dump(asset_yml, out)
           end
 
@@ -106,7 +106,7 @@ module Synthesis
       @target = target_parts[2].to_s
       @sources = package_hash[package_hash.keys.first]
       @asset_type = asset_type
-      @asset_path = ($asset_base_path ? "#{$asset_base_path}/" : "#{RAILS_ROOT}/public/") +
+      @asset_path = ($asset_base_path ? "#{$asset_base_path}/" : "#{Rails.root.to_s}/public/") +
           "#{@asset_type}#{@target_dir.gsub(/^(.+)$/, '/\1')}"
       @extension = get_extension
       @file_name = "#{@target}_packaged.#{@extension}"
@@ -134,7 +134,7 @@ module Synthesis
     end
     
     def lint
-      yui_path = "#{RAILS_ROOT}/vendor/plugins/asset_packager/lib"
+      yui_path = "#{Rails.root.to_s}/vendor/plugins/asset_packager/lib"
       if @asset_type == "javascripts"
         (@sources - %w(prototype effects dragdrop controls)).each do |s|
           puts "==================== #{s}.#{@extension} ========================"
@@ -172,7 +172,7 @@ module Synthesis
               when /^(http|https)\:\/\//
                 match
               when /^\//
-                File.expand_path("#{RAILS_ROOT}/public#{match}")
+                File.expand_path("#{Rails.root.to_s}/public#{match}")
               else
                 File.expand_path(File.join(File.dirname(File.expand_path(source)), match))
               end
@@ -188,7 +188,7 @@ module Synthesis
                   host = ''
                 end
 
-                absolute_path.sub("#{RAILS_ROOT}/public", host) + (File.exist?(absolute_path) ? '?' + File.mtime(absolute_path).to_i.to_s : '')
+                absolute_path.sub("#{Rails.root.to_s}/public", host) + (File.exist?(absolute_path) ? '?' + File.mtime(absolute_path).to_i.to_s : '')
               end unless @@css_url_replacements.has_key?(absolute_path)
 
               unless absolute_path == @@css_url_replacements[absolute_path]
@@ -218,11 +218,11 @@ module Synthesis
       end
 
       def compress_js(source)
-        jsmin_path = "#{RAILS_ROOT}/vendor/plugins/asset_packager/lib"
+        jsmin_path = "#{Rails.root.to_s}/vendor/plugins/asset_packager/lib"
         result = ""
         begin
           # attempt to use YUI compressor
-          IO.popen "java -jar #{jsmin_path}/yuicompressor-2.4.2.jar --type js 2>/dev/null", "r+" do |f|
+          IO.popen "java -jar #{jsmin_path}/yuicompressor-2.4.2.jar --type js 2", "r+" do |f|
             f.write source
             f.close_write
             result = f.read
@@ -230,7 +230,7 @@ module Synthesis
           return result if $?.success?
         rescue
           # fallback to included ruby compressor
-          tmp_path = "#{RAILS_ROOT}/tmp/#{@target}_packaged"
+          tmp_path = "#{Rails.root.to_s}/tmp/#{@target}_packaged"
 
           # write out to a temp file
           File.open("#{tmp_path}_uncompressed.js", "w") {|f| f.write(source) }
@@ -249,11 +249,11 @@ module Synthesis
       end
   
       def compress_css(source)
-        yui_path = "#{RAILS_ROOT}/vendor/plugins/asset_packager/lib"
+        yui_path = "#{Rails.root.to_s}/vendor/plugins/asset_packager/lib"
         result = ""
         begin
           # attempt to use YUI compressor
-          IO.popen "java -jar #{yui_path}/yuicompressor-2.4.2.jar --type css 2>/dev/null", "r+" do |f|
+          IO.popen "java -jar #{yui_path}/yuicompressor-2.4.2.jar --type css 2", "r+" do |f|
             f.write source
             f.close_write
             result = f.read
