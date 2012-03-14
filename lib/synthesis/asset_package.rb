@@ -139,7 +139,7 @@ module Synthesis
         (@sources - %w(prototype effects dragdrop controls)).each do |s|
           puts "==================== #{s}.#{@extension} ========================"
           # Windows OS/ UNIX compatabile
-          system("java -jar #{yui_path}/yuicompressor-2.4.2.jar --type js -v #{full_asset_path(s)}")
+          system("java -jar #{yui_path}/yuicompressor-2.4.7.jar --type js -v #{full_asset_path(s)}")
         end
       end
     end
@@ -153,6 +153,16 @@ module Synthesis
           File.open(new_build_path, "w") {|f| f.write(compressed_file) }
           log "Created #{new_build_path}"
         end
+      end
+
+      def write_to_file(source, filename)
+        file_path = "#{Rails.root.to_s}/tmp/#{filename}"
+
+        File.open(file_path, 'w') do |f|
+          f.puts source
+        end
+
+        return file_path
       end
       
       def full_asset_path(source)
@@ -222,14 +232,18 @@ module Synthesis
         jsmin_path = "#{Rails.root.to_s}/vendor/plugins/asset_packager/lib"
         result = ""
         begin
+          temp_js_file = write_to_file(source,'assets-temp.js')
+
           # attempt to use YUI compressor
-          IO.popen "java -jar #{jsmin_path}/yuicompressor-2.4.2.jar --type js 2", "r+" do |f|
-            f.write source
-            f.close_write
+          IO.popen "java -jar #{jsmin_path}/yuicompressor-2.4.7.jar --type js #{temp_js_file}", "w+" do |f|
             result = f.read
           end
           return result if $?.success?
-        rescue
+        rescue => e
+          puts "Error has occured #{e.message}"
+          puts e.backtrace
+
+          puts '>>>> Fallback to JSMIN compressor <<<<'
           # fallback to included ruby compressor
           tmp_path = "#{Rails.root.to_s}/tmp/#{@target}_packaged"
 
@@ -253,14 +267,16 @@ module Synthesis
         yui_path = "#{Rails.root.to_s}/vendor/plugins/asset_packager/lib"
         result = ""
         begin
+          temp_css_file = write_to_file(source,'assets-temp.css')
           # attempt to use YUI compressor
-          IO.popen "java -jar #{yui_path}/yuicompressor-2.4.2.jar --type css 2", "r+" do |f|
-            f.write source
-            f.close_write
+          IO.popen "java -jar #{yui_path}/yuicompressor-2.4.7.jar --type css #{temp_css_file}", "w+" do |f|
             result = f.read
           end
           return result if $?.success?
         rescue
+          puts "Error has occured #{e.message}"
+          puts e.backtrace
+          puts '>>>> Fallback to primitive CSS compressor <<<<'
           source.gsub!(/\/\*(.*?)\*\//m, "") # remove comments - caution, might want to remove this if using css hacks
           source.gsub!(/\s+/, " ")           # collapse space
           source.gsub!(/\} /, "}\n")         # add line breaks
